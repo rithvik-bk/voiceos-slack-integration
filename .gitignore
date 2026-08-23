@@ -1,0 +1,16 @@
+# Never commit these from an integration folder.
+connect-app.json
+tokens.json
+tokens.json.tmp
+.env
+node_modules/
+*.log
+.DS_Store
+
+# Runtime state, not source: the connect-anti-spam stamp (lifecycle.ts). Holds a
+# millisecond timestamp and a trigger name — never a token, code or verifier.
+.connect-cooldown
+
+# Vendored engine build/runtime artifacts (the engine is vendored as source only).
+vendor/oauth-engine/node_modules/
+vendor/oauth-engine/dist/

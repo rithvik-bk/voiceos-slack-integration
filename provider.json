@@ -1,0 +1,91 @@
+{
+  "$schema": "../../provider.schema.json",
+  "schema_version": 1,
+  "name": "slack",
+  "display_name": "Slack",
+  "client_id": "11838131249137.11820835864391",
+  "client_type": "public",
+  "pkce": "S256",
+  "redirect_strategy": "loopback",
+  "redirect_host": "localhost",
+  "redirect_ports": [
+    33418,
+    33419,
+    33420
+  ],
+  "authorize_url": "https://slack.com/oauth/v2/authorize",
+  "token_url": "https://slack.com/api/oauth.v2.access",
+  "scope_param": "user_scope",
+  "scopes": [
+    "channels:read",
+    "channels:history",
+    "users:read",
+    "chat:write",
+    "im:read",
+    "im:write",
+    "im:history",
+    "mpim:read",
+    "mpim:write",
+    "mpim:history",
+    "groups:read",
+    "groups:history",
+    "search:read",
+    "reactions:write",
+    "reminders:write",
+    "files:write",
+    "users.profile:write",
+    "dnd:write"
+  ],
+  "scope_delimiter": ",",
+  "extra_authorize_params": {
+    "scope": ""
+  },
+  "token_auth": "none",
+  "token_endpoint_extra_headers": {},
+  "static_headers": {},
+  "token_path": "authed_user.access_token",
+  "refresh_token_path": "authed_user.refresh_token",
+  "expires_in_path": "authed_user.expires_in",
+  "success_predicate": {
+    "path": "ok",
+    "equals": true
+  },
+  "refresh": "rotation",
+  "rotation": "optional-enabled",
+  "refresh_auth": "client_id_body",
+  "access_token_ttl": 43200,
+  "refresh_ttl": 2592000,
+  "rate_limit": {
+    "requests_per_minute": 600,
+    "note": "oauth.v2.access is documented at 600/min [C-SL-25]; the demo makes single-digit calls."
+  },
+  "relay_eligible": true,
+  "identity_probe": {
+    "url": "https://slack.com/api/auth.test",
+    "method": "POST",
+    "auth": "bearer",
+    "success_predicate": {
+      "path": "ok",
+      "equals": true
+    },
+    "handle_path": "user",
+    "account_id_path": "user_id",
+    "workspace_path": "team"
+  },
+  "_placeholders": [
+    "client_id"
+  ],
+  "_notes": {
+    "scopes": "18 user-token scopes, one per command in SLACK-COMMAND-SPEC §4 — every string verified against docs.slack.dev/reference/scopes/ that review, and every one traceable to a named command (no speculative scope reaches the consent screen, §6 of docs/registration/SLACK.md). Grown from the Phase-1 three (channels:read, channels:history, users:read) on 2026-08-17. Slack scopes are ADDITIVE-ONLY [C-SL-31]: the next engine.connect('slack') sends the full user_scope list and the user sees ONE Allow screen; the old token is superseded, not stacked. No dashboard change, no new registration — desktop PKCE apps request user scopes at authorize time. Deliberately absent: groups:write, im:write.topic, mpim:write.topic, usergroups:* — this catalog never manages membership or topics.",
+    "client_id": "The one value you paste. Filled from api.slack.com/apps -> Basic Information -> App Credentials -> Client ID. Public config, safe to commit. The Client Secret is never copied, never stored, never sent. NOTE: this file contains a SECOND empty string on purpose — extra_authorize_params.scope — see below.",
+    "scope_param": "Slack splits bot vs user scopes across two authorize params. Desktop redirects (localhost + PKCE) MAY NOT request bot scopes [C-SL-03], so we send user_scope only and keep `scope` present-and-empty, mirroring Slack's own PKCE example URL. That deliberate empty string is why 'client_id is the only blank' was never true for Slack (§A16 amends W3's criterion to `_placeholders`).",
+    "scope_delimiter": "Slack's own authorize examples comma-separate scope lists; Zoom/Reddit use a space. One axis, no engine branch.",
+    "token_path": "For a user-token install the token is nested under authed_user, NOT at the top level. Top-level access_token is the bot token, which this app never has [C-SL-07].",
+    "refresh_auth": "U1 CLOSED EMPIRICALLY 2026-08-16 (live probe, this Mac): grant_type=refresh_token + refresh_token + client_id in body, NO Authorization header, NO client_secret -> ok:true with a rotated 12h/43200s pair. The rotation page's client_secret-required claim does NOT apply to PKCE public clients; the PKCE page wins. ⚠️ RESPONSE SHAPE DIFFERS FROM EXCHANGE: refresh returns access_token/refresh_token at the TOP LEVEL (scope gains 'identify'), while exchange nests them under authed_user — refresh.ts must parse top-level, see DISCOVERIES.md D-2026-08-16-1.",
+    "refresh_ttl": "2592000s = 30 days. PKCE apps: 'all refresh tokens issued to your app will expire in 30 days instead of lasting indefinitely.' [C-SL-27]",
+    "access_token_ttl": "43200s = 12h, fixed by Slack when token rotation is on. 'It will always expire in 43,200 seconds, which is 12 hours.' [C-SL-09] — re-confirmed live 2026-08-16.",
+    "rotation": "optional-enabled = NOT forced for us (localhost redirect), turned ON deliberately at registration so a refresh token exists at all (§A1). Forced rotation is scoped to custom URI schemes [C-SL-34].",
+    "success_predicate": "Slack returns failures as HTTP 200 + {\"ok\": false} [C-SL-20], so the status code alone is never the verdict here."
+  },
+  "brand_icon": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgNTEyIDUxMiI+IDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDEwMC42LDEwMC42KSBzY2FsZSgyLjUzKSI+IDxwYXRoIGZpbGw9IiNFMDFFNUEiIGQ9Ik0yNS44LDc3LjZjMCw3LjEtNS44LDEyLjktMTIuOSwxMi45UzAsODQuNywwLDc3LjZzNS44LTEyLjksMTIuOS0xMi45aDEyLjlWNzcuNnogTTMyLjMsNzcuNmMwLTcuMSw1LjgtMTIuOSwxMi45LTEyLjlzMTIuOSw1LjgsMTIuOSwxMi45djMyLjNjMCw3LjEtNS44LDEyLjktMTIuOSwxMi45cy0xMi45LTUuOC0xMi45LTEyLjlWNzcuNnoiLz4gPHBhdGggZmlsbD0iIzM2QzVGMCIgZD0iTTQ1LjIsMjUuOGMtNy4xLDAtMTIuOS01LjgtMTIuOS0xMi45UzM4LjEsMCw0NS4yLDBzMTIuOSw1LjgsMTIuOSwxMi45djEyLjlINDUuMnogTTQ1LjIsMzIuM2M3LjEsMCwxMi45LDUuOCwxMi45LDEyLjlzLTUuOCwxMi45LTEyLjksMTIuOUgxMi45QzUuOCw1OC4xLDAsNTIuMywwLDQ1LjJzNS44LTEyLjksMTIuOS0xMi45SDQ1LjJ6Ii8+IDxwYXRoIGZpbGw9IiMyRUI2N0QiIGQ9Ik05Nyw0NS4yYzAtNy4xLDUuOC0xMi45LDEyLjktMTIuOXMxMi45LDUuOCwxMi45LDEyLjlzLTUuOCwxMi45LTEyLjksMTIuOUg5N1Y0NS4yeiBNOTAuNSw0NS4yYzAsNy4xLTUuOCwxMi45LTEyLjksMTIuOXMtMTIuOS01LjgtMTIuOS0xMi45VjEyLjlDNjQuNyw1LjgsNzAuNSwwLDc3LjYsMHMxMi45LDUuOCwxMi45LDEyLjlWNDUuMnoiLz4gPHBhdGggZmlsbD0iI0VDQjIyRSIgZD0iTTc3LjYsOTdjNy4xLDAsMTIuOSw1LjgsMTIuOSwxMi45cy01LjgsMTIuOS0xMi45LDEyLjlzLTEyLjktNS44LTEyLjktMTIuOVY5N0g3Ny42eiBNNzcuNiw5MC41Yy03LjEsMC0xMi45LTUuOC0xMi45LTEyLjlzNS44LTEyLjksMTIuOS0xMi45aDMyLjNjNy4xLDAsMTIuOSw1LjgsMTIuOSwxMi45cy01LjgsMTIuOS0xMi45LDEyLjlINzcuNnoiLz4gPC9nPiA8L3N2Zz4="
+}

@@ -1,0 +1,15 @@
+{
+  "name": "handshake-relay",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The stateless HANDSHAKE relay reference (SPEC Part 2 §5, §5b). Two modes: B2a assertion signing (relay never sees a token) and B2b hardened forwarding (X25519 ephemeral response encryption). Zero runtime dependencies. Holds nothing at rest — no database, no logs of credential material, no token in memory past one response.",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "start": "node src/server.ts",
+    "test": "vitest --run --config vitest.config.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  }
+}

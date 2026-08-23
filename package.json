@@ -1,0 +1,20 @@
+{
+  "name": "voiceos-slack-integration",
+  "version": "1.1.0",
+  "type": "module",
+  "private": true,
+  "description": "Connect Slack by voice inside VoiceOS — no API key, no paste. A custom-MCP integration built on the voiceos-oauth-engine.",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "engine:test": "cd vendor/oauth-engine && npm test",
+    "engine:check": "cd vendor/oauth-engine && npm run check",
+    "check": "npm run typecheck"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.0",
+    "typescript": "^5.8.0"
+  }
+}

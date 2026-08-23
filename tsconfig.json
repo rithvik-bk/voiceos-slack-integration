@@ -1,0 +1,38 @@
+{
+  // Runtime is node-native TypeScript: `node server.ts`, zero runtime dependencies, no build
+  // step. tsc is a *type checker* here, never an emitter — the same contract the vendored
+  // OAuth engine runs under.
+  //
+  //  - allowImportingTsExtensions is mandatory, not stylistic: node requires the explicit
+  //    `.ts` extension in import specifiers when running TypeScript directly, and every file
+  //    in this integration imports its neighbours (and the engine) that way.
+  //    https://nodejs.org/api/typescript.html
+  //  - erasableSyntaxOnly (TS 5.8+) bans the constructs node's type-stripper cannot erase.
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "types": ["node"],
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "exactOptionalPropertyTypes": true,
+
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true
+  },
+  "include": [
+    "*.ts",
+    "engine/**/*.ts",
+    "vendor/oauth-engine/engine/src/**/*.ts"
+  ],
+  "exclude": ["node_modules", "**/node_modules", "vendor/oauth-engine/engine/test"]
+}

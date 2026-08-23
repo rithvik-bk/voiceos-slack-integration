@@ -1,0 +1,42 @@
+{
+  // Runtime is node-native TypeScript (engine contract §A2): `exec node server.ts`, zero
+  // runtime dependencies, no build step. tsc is a *type checker* here, never an emitter.
+  //
+  //  - erasableSyntaxOnly (TS 5.8+) bans the four constructs node's type-stripper cannot
+  //    erase — enum, runtime namespace/module, parameter properties, import =/export =.
+  //    Verified: https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-8.html
+  //  - allowImportingTsExtensions is mandatory, not stylistic: node requires the explicit
+  //    `.ts` extension in import specifiers when running TypeScript directly.
+  //    Verified: https://nodejs.org/api/typescript.html
+  //  - Type stripping is stable as of node v24.12.0 (this Mac runs v24.14.0).
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "types": ["node"],
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "exactOptionalPropertyTypes": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true
+  },
+  "include": [
+    "engine/**/*.ts",
+    "engine/**/*.mts",
+    "tools/**/*.ts",
+    "relay/**/*.ts"
+  ],
+  "exclude": ["node_modules", "**/node_modules"]
+}

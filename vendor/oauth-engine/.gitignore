@@ -1,0 +1,25 @@
+# Secrets — never committed, never negotiable.
+# connect-app.json is an OCCUPIED NAME with secret semantics in some hosts (it can hold a
+# live client_secret on disk). The engine's public per-provider config is provider.json.
+# See the engine contract §A4.
+connect-app.json
+tokens.json
+tokens.json.tmp
+.env
+.env.*
+*.pem
+vault-dump*
+
+# Build/runtime
+node_modules/
+# A local install/stage step may write here; deploying to a host is a human step, not a commit.
+.staging/
+# Runtime state written by an integration's lifecycle hook (connect anti-spam stamp).
+.connect-cooldown
+dist/
+coverage/
+*.log
+*.tsbuildinfo
+
+# macOS
+.DS_Store

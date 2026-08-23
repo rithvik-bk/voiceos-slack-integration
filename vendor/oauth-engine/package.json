@@ -1,0 +1,25 @@
+{
+  "name": "universal-voiceos-oauth",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "One provider-agnostic OAuth engine (PKCE · loopback · state · Keychain vault · silent refresh) that makes auth:\"oauth2\" work for any VoiceOS custom integration.",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "probe": "node tools/probe.mjs",
+    "test": "vitest --run",
+    "test:watch": "vitest",
+    "preview:callbacks": "node engine/scripts/render-callback-previews.mts",
+    "drift": "node tools/drift-check.mjs",
+    "scan": "node tools/scan-secrets.mjs",
+    "check": "npm run typecheck && npm run test && npm run drift && npm run scan"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.0",
+    "typescript": "^5.8.0",
+    "vitest": "^4.1.0"
+  }
+}

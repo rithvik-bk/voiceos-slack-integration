@@ -1,0 +1,715 @@
+{
+  "schemaVersion": 1,
+  "id": "com.voiceos.generated.slack-connect",
+  "version": "1.1.0",
+  "name": "Slack",
+  "summary": "Read and send messages",
+  "description": "Do real Slack work by voice: a cross-channel catch-up digest, read any channel or DM, search with Slack’s own search, send and schedule messages, react, reply in thread, set your status and Do Not Disturb. Connecting is one tap on Slack’s own approval page. No API key is ever pasted, no secret ships with this integration, and the token is stored encrypted in the login Keychain rather than in any file on disk.",
+  "categories": [
+    "Productivity",
+    "Communication"
+  ],
+  "publisher": {
+    "id": "pub_user",
+    "name": "Rithvik"
+  },
+  "runtime": {
+    "kind": "local-mcp",
+    "command": "/bin/zsh",
+    "args": [
+      "run.sh"
+    ]
+  },
+  "icon": "icon.png",
+  "tools": [
+    {
+      "name": "slack_connect",
+      "title": "Connect Slack",
+      "description": "Connect (or reconnect) Slack for this Mac. Opens Slack’s approval page in the browser and finishes in the background; call again with switch:true to sign in as a different account or workspace. Tokens are stored in the macOS Keychain on this device — never on a server.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "switch": {
+            "type": "boolean",
+            "description": "Force a fresh approval even if Slack is already connected — the \"switch accounts\" / \"use my other workspace\" path."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "slack_status",
+      "title": "Slack connection status",
+      "description": "Report whether Slack is connected on this Mac and as whom, or, given the connect_id returned by slack_connect, how far along an approval that is still in flight has got. Use right after slack_connect to find out whether the user has hit Allow yet. Read-only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "connect_id": {
+            "type": "string",
+            "description": "The id slack_connect returned, to poll an approval that is still open."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "slack_catch_up",
+      "title": "Catch me up",
+      "description": "Cross-channel Slack digest of what arrived recently, grouped by channel or DM and ranked by mentions of you then recency. Quotes the messages verbatim, no summary is generated. Use when the user asks \"what did I miss\", \"catch me up on Slack\", or \"anything new\". Read-only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "lookback_minutes": {
+            "type": "integer",
+            "minimum": 5,
+            "maximum": 1440,
+            "description": "How far back to look. Defaults to 240 (4 hours)."
+          }
+        }
+      }
+    },
+    {
+      "name": "slack_read_channel",
+      "title": "Read a channel",
+      "description": "Read the most recent message(s) in a Slack channel, private channel, group DM or DM, named by the user. Resolves the spoken name against the real conversation list and asks which one when the name is ambiguous. Use when the user asks what is in a channel or what someone said there. Read-only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "channel": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Channel name, like #general, or a person's name for a DM. Also accepts a Slack channel ID."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20,
+            "description": "How many recent messages. Default 1."
+          }
+        },
+        "required": [
+          "channel"
+        ]
+      }
+    },
+    {
+      "name": "slack_read_dm",
+      "title": "Read a DM",
+      "description": "Read the most recent message(s) in the direct message conversation with one person, opening the DM if it does not exist yet. Use when the user asks about their DM with someone by name. Read-only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "person": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Person's name, like Maya. Also accepts a Slack user ID."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20,
+            "description": "How many recent messages. Default 1."
+          }
+        },
+        "required": [
+          "person"
+        ]
+      }
+    },
+    {
+      "name": "slack_send_message",
+      "title": "Send a message",
+      "description": "Send a Slack message to a channel or person. The destination must resolve to exactly one real conversation and the text is posted exactly as dictated, nothing is rewritten. Use when the user says to tell, message or send something to a channel or person.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Channel name, like #general, or a person's name, like Maya. Also accepts a Slack channel or user ID."
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The literal message text the user dictated."
+          }
+        },
+        "required": [
+          "target",
+          "text"
+        ]
+      },
+      "confirmation": {
+        "schemaVersion": 1,
+        "root": {
+          "type": "card",
+          "children": [
+            {
+              "type": "widget",
+              "html": "<!doctype html><html><head><meta charset=\"utf-8\"><style>\n*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Helvetica,Arial,sans-serif}\nhtml,body{background:transparent}\n.composer{background:#1A1D21;border:1px solid rgba(255,255,255,.09);border-radius:10px;overflow:hidden;color:#D1D2D3}\n.hdr{display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.07);border-bottom:1px solid rgba(255,255,255,.06);padding:11px 14px}\n.hdr img{width:18px;height:18px}\n.hdr b{font-size:14px;font-weight:700;color:#E8E8E8}\n.row{display:flex;align-items:center;gap:10px;padding:12px 14px 0}\n.lbl{font-size:13px;color:#9EA0A3}\n.pill{display:inline-flex;align-items:center;gap:5px;background:rgba(29,155,209,.16);color:#6FB6E3;border-radius:5px;padding:3px 10px;font-size:13px;font-weight:600}\n.hash{opacity:.75;font-weight:400}\n.msgwrap{margin:12px 14px 0;border:1px solid rgba(255,255,255,.16);border-radius:9px;background:#222529}\n.msgwrap:focus-within{border-color:rgba(29,155,209,.65)}\n.bar{display:flex;gap:2px;border-bottom:1px solid rgba(255,255,255,.08);padding:5px 7px}\n.bar button{border:0;background:transparent;border-radius:5px;width:29px;height:26px;color:#ABABAD;font-size:13px;cursor:pointer}\n.bar button:hover{background:rgba(255,255,255,.09);color:#E8E8E8}\n.bb{font-weight:800}.ii{font-style:italic;font-family:Georgia,serif}.ss{text-decoration:line-through}.cc{font-family:ui-monospace,Menlo,monospace;font-size:11px}\ntextarea{display:block;width:100%;border:0;outline:0;resize:none;overflow-y:auto;padding:10px 12px;font-size:14px;line-height:1.45;color:#E8E8E8;background:transparent;min-height:42px;max-height:200px}\ntextarea::placeholder{color:#7A7C7E}\n.foot{height:12px}\n</style></head><body>\n<div class=\"composer\">\n <div class=\"hdr\"><b>New message</b></div>\n <div class=\"row\"><div class=\"lbl\">To:</div>\n  <span class=\"pill\"><span class=\"hash\" id=\"pillHash\">#</span><span id=\"pillName\"></span></span></div>\n <div class=\"msgwrap\">\n  <div class=\"bar\">\n   <button class=\"bb\" data-w=\"*\" type=\"button\" aria-label=\"Bold\">B</button>\n   <button class=\"ii\" data-w=\"_\" type=\"button\" aria-label=\"Italic\">I</button>\n   <button class=\"ss\" data-w=\"~\" type=\"button\" aria-label=\"Strikethrough\">S</button>\n   <button class=\"cc\" data-w=\"`\" type=\"button\" aria-label=\"Code\">&lt;/&gt;</button>\n  </div>\n  <textarea id=\"msg\" rows=\"2\"></textarea></div>\n <div class=\"foot\"></div>\n</div>\n<script>\nvar msg=document.getElementById('msg');\nfunction push(){parent.postMessage({type:'voiceos:updateInput',key:'text',value:msg.value},'*');}\nfunction fit(){msg.style.height='auto';msg.style.height=Math.min(msg.scrollHeight,200)+'px';\n var total=document.querySelector('.composer').offsetHeight+52;\n parent.postMessage({type:'voiceos:resize',height:Math.max(60,Math.min(420,total))},'*');}\nmsg.addEventListener('input',function(){push();fit();});\nwindow.addEventListener('message',function(e){var d=e.data||{};\n if(d.type==='voiceos:init'){var a=d.args||{};msg.value=String(a.text==null?'':a.text);\n  var t=String(a.target==null?'':a.target);var h=t.charAt(0)==='#';\n  document.getElementById('pillHash').style.display=h?'':'none';\n  document.getElementById('pillName').textContent=h?t.slice(1):t;}\n if(d.type==='voiceos:init'){fit();}});\nsetTimeout(fit,0);\nArray.prototype.forEach.call(document.querySelectorAll('.bar button'),function(b){\n b.addEventListener('click',function(){var w=b.getAttribute('data-w');\n  var s=msg.selectionStart,e2=msg.selectionEnd,v=msg.value;\n  msg.value=v.slice(0,s)+w+v.slice(s,e2)+w+v.slice(e2);\n  msg.focus();msg.setSelectionRange(s+1,e2+1);push();});});\n</script></body></html>",
+              "height": 230,
+              "confirmLabel": "Send"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "slack_search",
+      "title": "Search Slack",
+      "description": "Search Slack messages with Slack’s own search (search.messages, which only a user token can call), passing the query verbatim. Use when the user asks to search Slack or find what someone said about something. Read-only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The search query, word for word as the user said it."
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20,
+            "description": "How many results to fetch. Default 5."
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "name": "slack_find",
+      "title": "Find a channel or person",
+      "description": "Find Slack channels and people by name and list every plausible match rather than picking one. Use when the user asks whether a channel exists, who someone is, or what channels they are in. Read-only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Name or fragment of a channel or person."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "any",
+              "channel",
+              "person"
+            ],
+            "description": "Restrict the lookup to channels or people. Default any."
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "name": "slack_react",
+      "title": "React to a message",
+      "description": "Add an emoji reaction to a specific Slack message. The message must be one already read aloud or shown in this session; a timestamp that cannot be proved blocks instead of reacting.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "channel": {
+            "type": "string",
+            "description": "Channel name, like #general. Also accepts a Slack channel ID."
+          },
+          "ts": {
+            "type": "string",
+            "description": "The ts value of the target message, copied exactly from a prior read result. Internal reference, never spoken to the user."
+          },
+          "emoji": {
+            "type": "string",
+            "description": "The emoji as the character itself, like 👍. Slack emoji names like thumbsup also work."
+          },
+          "message": {
+            "type": "string",
+            "description": "The text of the message being reacted to, copied word for word from the read result. Shown to the user on the confirmation card."
+          }
+        },
+        "required": [
+          "channel",
+          "ts",
+          "emoji"
+        ],
+        "additionalProperties": false
+      },
+      "confirmation": {
+        "schemaVersion": 1,
+        "root": {
+          "type": "card",
+          "title": "Add a reaction",
+          "icon": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 122.8 122.8'><path d='M25.8 77.6c0 7.1-5.8 12.9-12.9 12.9S0 84.7 0 77.6s5.8-12.9 12.9-12.9h12.9v12.9zm6.5 0c0-7.1 5.8-12.9 12.9-12.9s12.9 5.8 12.9 12.9v32.3c0 7.1-5.8 12.9-12.9 12.9s-12.9-5.8-12.9-12.9V77.6z' fill='%23E01E5A'/><path d='M45.2 25.8c-7.1 0-12.9-5.8-12.9-12.9S38.1 0 45.2 0s12.9 5.8 12.9 12.9v12.9H45.2zm0 6.5c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9H12.9C5.8 58.1 0 52.3 0 45.2s5.8-12.9 12.9-12.9h32.3z' fill='%2336C5F0'/><path d='M97 45.2c0-7.1 5.8-12.9 12.9-12.9s12.9 5.8 12.9 12.9-5.8 12.9-12.9 12.9H97V45.2zm-6.5 0c0 7.1-5.8 12.9-12.9 12.9s-12.9-5.8-12.9-12.9V12.9C64.7 5.8 70.5 0 77.6 0s12.9 5.8 12.9 12.9v32.3z' fill='%232EB67D'/><path d='M77.6 97c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9-12.9-5.8-12.9-12.9V97h12.9zm0-6.5c-7.1 0-12.9-5.8-12.9-12.9s5.8-12.9 12.9-12.9h32.3c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9H77.6z' fill='%23ECB22E'/></svg>",
+          "children": [
+            {
+              "type": "keyValue",
+              "rows": [
+                {
+                  "label": "Reaction",
+                  "value": "{{emoji}}",
+                  "color": "accent"
+                }
+              ]
+            },
+            {
+              "type": "keyValue",
+              "visibleIf": "message",
+              "rows": [
+                {
+                  "label": "Message",
+                  "value": "{{message}}",
+                  "color": "muted"
+                }
+              ]
+            },
+            {
+              "type": "keyValue",
+              "rows": [
+                {
+                  "label": "In",
+                  "value": "{{channel}}"
+                }
+              ]
+            }
+          ],
+          "footer": [
+            {
+              "type": "actions",
+              "items": [
+                {
+                  "label": "Cancel",
+                  "role": "cancel"
+                },
+                {
+                  "label": "React",
+                  "role": "confirm",
+                  "color": "accent"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "slack_schedule_message",
+      "title": "Schedule a message",
+      "description": "Schedule a message to post later in a Slack channel or DM. The text is sent word-for-word as dictated and the send time must be an absolute instant; the scheduled id comes back so the send can be cancelled.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "channel": {
+            "type": "string",
+            "description": "Channel name, like #general. Also accepts a Slack channel ID."
+          },
+          "user": {
+            "type": "string",
+            "description": "Person's name, like Maya, to send a direct message instead. Also accepts a Slack user ID."
+          },
+          "text": {
+            "type": "string",
+            "description": "The literal message text, verbatim as dictated."
+          },
+          "post_at": {
+            "type": "number",
+            "description": "Internal alternative to when: unix seconds for the send. Prefer when."
+          },
+          "when": {
+            "type": "string",
+            "description": "When to send, in plain words, like tomorrow at 9:00 AM. Also accepts an ISO date-time."
+          }
+        },
+        "required": [
+          "text",
+          "when"
+        ],
+        "additionalProperties": false
+      },
+      "confirmation": {
+        "schemaVersion": 1,
+        "root": {
+          "type": "card",
+          "title": "Schedule a message",
+          "icon": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 122.8 122.8'><path d='M25.8 77.6c0 7.1-5.8 12.9-12.9 12.9S0 84.7 0 77.6s5.8-12.9 12.9-12.9h12.9v12.9zm6.5 0c0-7.1 5.8-12.9 12.9-12.9s12.9 5.8 12.9 12.9v32.3c0 7.1-5.8 12.9-12.9 12.9s-12.9-5.8-12.9-12.9V77.6z' fill='%23E01E5A'/><path d='M45.2 25.8c-7.1 0-12.9-5.8-12.9-12.9S38.1 0 45.2 0s12.9 5.8 12.9 12.9v12.9H45.2zm0 6.5c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9H12.9C5.8 58.1 0 52.3 0 45.2s5.8-12.9 12.9-12.9h32.3z' fill='%2336C5F0'/><path d='M97 45.2c0-7.1 5.8-12.9 12.9-12.9s12.9 5.8 12.9 12.9-5.8 12.9-12.9 12.9H97V45.2zm-6.5 0c0 7.1-5.8 12.9-12.9 12.9s-12.9-5.8-12.9-12.9V12.9C64.7 5.8 70.5 0 77.6 0s12.9 5.8 12.9 12.9v32.3z' fill='%232EB67D'/><path d='M77.6 97c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9-12.9-5.8-12.9-12.9V97h12.9zm0-6.5c-7.1 0-12.9-5.8-12.9-12.9s5.8-12.9 12.9-12.9h32.3c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9H77.6z' fill='%23ECB22E'/></svg>",
+          "children": [
+            {
+              "type": "keyValue",
+              "visibleIf": "channel",
+              "rows": [
+                {
+                  "label": "To",
+                  "value": "{{channel}}",
+                  "color": "accent"
+                }
+              ]
+            },
+            {
+              "type": "keyValue",
+              "visibleIf": "user",
+              "rows": [
+                {
+                  "label": "To",
+                  "value": "{{user}}",
+                  "color": "accent"
+                }
+              ]
+            },
+            {
+              "type": "textField",
+              "bind": "{{when}}",
+              "label": "At",
+              "required": true
+            },
+            {
+              "type": "divider"
+            },
+            {
+              "type": "textField",
+              "bind": "{{text}}",
+              "label": "Message",
+              "required": true,
+              "multiline": true
+            }
+          ],
+          "footer": [
+            {
+              "type": "actions",
+              "items": [
+                {
+                  "label": "Cancel",
+                  "role": "cancel"
+                },
+                {
+                  "label": "Schedule",
+                  "role": "confirm",
+                  "color": "success"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "slack_set_reminder",
+      "title": "Set a reminder",
+      "description": "Set a Slack reminder for yourself. The reminder text is stored word-for-word and the time Slack resolved is returned as an absolute timestamp so it can be shown back rather than assumed.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "What to be reminded about, verbatim as dictated."
+          },
+          "time": {
+            "type": "string",
+            "description": "When to be reminded, in plain words Slack understands, like in 20 minutes or tomorrow at 9am."
+          }
+        },
+        "required": [
+          "text",
+          "time"
+        ],
+        "additionalProperties": false
+      },
+      "confirmation": {
+        "schemaVersion": 1,
+        "root": {
+          "type": "card",
+          "title": "Set a reminder",
+          "icon": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 122.8 122.8'><path d='M25.8 77.6c0 7.1-5.8 12.9-12.9 12.9S0 84.7 0 77.6s5.8-12.9 12.9-12.9h12.9v12.9zm6.5 0c0-7.1 5.8-12.9 12.9-12.9s12.9 5.8 12.9 12.9v32.3c0 7.1-5.8 12.9-12.9 12.9s-12.9-5.8-12.9-12.9V77.6z' fill='%23E01E5A'/><path d='M45.2 25.8c-7.1 0-12.9-5.8-12.9-12.9S38.1 0 45.2 0s12.9 5.8 12.9 12.9v12.9H45.2zm0 6.5c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9H12.9C5.8 58.1 0 52.3 0 45.2s5.8-12.9 12.9-12.9h32.3z' fill='%2336C5F0'/><path d='M97 45.2c0-7.1 5.8-12.9 12.9-12.9s12.9 5.8 12.9 12.9-5.8 12.9-12.9 12.9H97V45.2zm-6.5 0c0 7.1-5.8 12.9-12.9 12.9s-12.9-5.8-12.9-12.9V12.9C64.7 5.8 70.5 0 77.6 0s12.9 5.8 12.9 12.9v32.3z' fill='%232EB67D'/><path d='M77.6 97c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9-12.9-5.8-12.9-12.9V97h12.9zm0-6.5c-7.1 0-12.9-5.8-12.9-12.9s5.8-12.9 12.9-12.9h32.3c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9H77.6z' fill='%23ECB22E'/></svg>",
+          "children": [
+            {
+              "type": "textField",
+              "bind": "{{text}}",
+              "label": "Remind me about",
+              "required": true,
+              "multiline": true
+            },
+            {
+              "type": "textField",
+              "bind": "{{time}}",
+              "label": "When",
+              "required": true
+            }
+          ],
+          "footer": [
+            {
+              "type": "actions",
+              "items": [
+                {
+                  "label": "Cancel",
+                  "role": "cancel"
+                },
+                {
+                  "label": "Remind me",
+                  "role": "confirm",
+                  "color": "accent"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "slack_upload_file",
+      "title": "Upload a file",
+      "description": "Upload a file that already exists on this Mac to a Slack channel or DM, using the current getUploadURLExternal/completeUploadExternal flow. A path that does not exist is a hard block, never a near match.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Absolute path of the file on this machine."
+          },
+          "filename": {
+            "type": "string",
+            "description": "The file's name with extension, like report.pdf, taken from the end of path. Shown to the user on the confirmation card."
+          },
+          "channel": {
+            "type": "string",
+            "description": "Channel name, like #general. Also accepts a Slack channel ID."
+          },
+          "user": {
+            "type": "string",
+            "description": "Person's name, like Maya, to send the file as a direct message instead. Also accepts a Slack user ID."
+          },
+          "title": {
+            "type": "string",
+            "description": "Optional title shown in Slack."
+          },
+          "initial_comment": {
+            "type": "string",
+            "description": "Optional message posted with the file."
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "confirmation": {
+        "schemaVersion": 1,
+        "root": {
+          "type": "card",
+          "title": "Upload a file",
+          "icon": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 122.8 122.8'><path d='M25.8 77.6c0 7.1-5.8 12.9-12.9 12.9S0 84.7 0 77.6s5.8-12.9 12.9-12.9h12.9v12.9zm6.5 0c0-7.1 5.8-12.9 12.9-12.9s12.9 5.8 12.9 12.9v32.3c0 7.1-5.8 12.9-12.9 12.9s-12.9-5.8-12.9-12.9V77.6z' fill='%23E01E5A'/><path d='M45.2 25.8c-7.1 0-12.9-5.8-12.9-12.9S38.1 0 45.2 0s12.9 5.8 12.9 12.9v12.9H45.2zm0 6.5c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9H12.9C5.8 58.1 0 52.3 0 45.2s5.8-12.9 12.9-12.9h32.3z' fill='%2336C5F0'/><path d='M97 45.2c0-7.1 5.8-12.9 12.9-12.9s12.9 5.8 12.9 12.9-5.8 12.9-12.9 12.9H97V45.2zm-6.5 0c0 7.1-5.8 12.9-12.9 12.9s-12.9-5.8-12.9-12.9V12.9C64.7 5.8 70.5 0 77.6 0s12.9 5.8 12.9 12.9v32.3z' fill='%232EB67D'/><path d='M77.6 97c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9-12.9-5.8-12.9-12.9V97h12.9zm0-6.5c-7.1 0-12.9-5.8-12.9-12.9s5.8-12.9 12.9-12.9h32.3c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9H77.6z' fill='%23ECB22E'/></svg>",
+          "children": [
+            {
+              "type": "keyValue",
+              "visibleIf": "filename",
+              "rows": [
+                {
+                  "label": "File",
+                  "value": "{{filename}}"
+                }
+              ]
+            },
+            {
+              "type": "keyValue",
+              "visibleIf": "channel",
+              "rows": [
+                {
+                  "label": "To",
+                  "value": "{{channel}}",
+                  "color": "accent"
+                }
+              ]
+            },
+            {
+              "type": "keyValue",
+              "visibleIf": "user",
+              "rows": [
+                {
+                  "label": "To",
+                  "value": "{{user}}",
+                  "color": "accent"
+                }
+              ]
+            },
+            {
+              "type": "divider"
+            },
+            {
+              "type": "textField",
+              "bind": "{{initial_comment}}",
+              "label": "Message",
+              "multiline": true
+            }
+          ],
+          "footer": [
+            {
+              "type": "actions",
+              "items": [
+                {
+                  "label": "Cancel",
+                  "role": "cancel"
+                },
+                {
+                  "label": "Upload",
+                  "role": "confirm",
+                  "color": "success"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "slack_thread_reply",
+      "title": "Reply in thread",
+      "description": "Reply inside a Slack thread. The thread root must be one already read or shown in this session, and the reply text posts word-for-word as dictated.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "channel": {
+            "type": "string",
+            "description": "Channel name, like #general. Also accepts a Slack channel ID."
+          },
+          "thread_ts": {
+            "type": "string",
+            "description": "The ts value of the thread's first message, copied exactly from a prior read result. Internal reference, never spoken to the user."
+          },
+          "text": {
+            "type": "string",
+            "description": "The literal reply text, verbatim as dictated."
+          },
+          "broadcast": {
+            "type": "boolean",
+            "description": "Also send the reply to the channel."
+          },
+          "replying_to": {
+            "type": "string",
+            "description": "The thread's first message as Author: text, copied from the read result. Shown to the user on the confirmation card."
+          }
+        },
+        "required": [
+          "channel",
+          "thread_ts",
+          "text"
+        ],
+        "additionalProperties": false
+      },
+      "confirmation": {
+        "schemaVersion": 1,
+        "root": {
+          "type": "card",
+          "children": [
+            {
+              "type": "widget",
+              "html": "<!doctype html><html><head><meta charset=\"utf-8\"><style>\n*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Helvetica,Arial,sans-serif}\nhtml,body{background:transparent}\n.composer{background:#1A1D21;border:1px solid rgba(255,255,255,.09);border-radius:10px;overflow:hidden;color:#D1D2D3}\n.hdr{display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.07);border-bottom:1px solid rgba(255,255,255,.06);padding:11px 14px}\n.hdr img{width:18px;height:18px}\n.hdr b{font-size:14px;font-weight:700;color:#E8E8E8}\n.row{display:flex;align-items:center;gap:10px;padding:12px 14px 0}\n.lbl{font-size:13px;color:#9EA0A3}\n.pill{display:inline-flex;align-items:center;gap:5px;background:rgba(29,155,209,.16);color:#6FB6E3;border-radius:5px;padding:3px 10px;font-size:13px;font-weight:600}\n.hash{opacity:.75;font-weight:400}\n.msgwrap{margin:12px 14px 0;border:1px solid rgba(255,255,255,.16);border-radius:9px;background:#222529}\n.msgwrap:focus-within{border-color:rgba(29,155,209,.65)}\n.bar{display:flex;gap:2px;border-bottom:1px solid rgba(255,255,255,.08);padding:5px 7px}\n.bar button{border:0;background:transparent;border-radius:5px;width:29px;height:26px;color:#ABABAD;font-size:13px;cursor:pointer}\n.bar button:hover{background:rgba(255,255,255,.09);color:#E8E8E8}\n.bb{font-weight:800}.ii{font-style:italic;font-family:Georgia,serif}.ss{text-decoration:line-through}.cc{font-family:ui-monospace,Menlo,monospace;font-size:11px}\ntextarea{display:block;width:100%;border:0;outline:0;resize:none;overflow-y:auto;padding:10px 12px;font-size:14px;line-height:1.45;color:#E8E8E8;background:transparent;min-height:42px;max-height:200px}\ntextarea::placeholder{color:#7A7C7E}\n.foot{height:12px}\n.quote{border-left:3px solid rgba(255,255,255,.22);padding:4px 10px;color:#9EA0A3;font-size:13px;line-height:1.4;max-height:56px;overflow:hidden}\n</style></head><body>\n<div class=\"composer\">\n <div class=\"hdr\"><b>Reply in thread</b></div>\n <div class=\"row\"><div class=\"lbl\">In</div>\n  <span class=\"pill\"><span class=\"hash\" id=\"chHash\">#</span><span id=\"chName\"></span></span></div>\n <div class=\"row\" id=\"quoteRow\" style=\"display:none\"><div class=\"quote\" id=\"quoteText\"></div></div>\n <div class=\"msgwrap\">\n  <div class=\"bar\">\n   <button class=\"bb\" data-w=\"*\" type=\"button\" aria-label=\"Bold\">B</button>\n   <button class=\"ii\" data-w=\"_\" type=\"button\" aria-label=\"Italic\">I</button>\n   <button class=\"ss\" data-w=\"~\" type=\"button\" aria-label=\"Strikethrough\">S</button>\n   <button class=\"cc\" data-w=\"`\" type=\"button\" aria-label=\"Code\">&lt;/&gt;</button>\n  </div>\n  <textarea id=\"msg\" rows=\"2\"></textarea></div>\n <div class=\"foot\"></div>\n</div>\n<script>\nvar msg=document.getElementById('msg');\nfunction push(){parent.postMessage({type:'voiceos:updateInput',key:'text',value:msg.value},'*');}\nfunction fit(){msg.style.height='auto';msg.style.height=Math.min(msg.scrollHeight,200)+'px';\n var total=document.querySelector('.composer').offsetHeight+52;\n parent.postMessage({type:'voiceos:resize',height:Math.max(60,Math.min(420,total))},'*');}\nmsg.addEventListener('input',function(){push();fit();});\nwindow.addEventListener('message',function(e){var d=e.data||{};\n if(d.type==='voiceos:init'){var a=d.args||{};msg.value=String(a.text==null?'':a.text);\n  var c=String(a.channel==null?'':a.channel);var ch=c.charAt(0)==='#';\n  document.getElementById('chHash').style.display=ch?'':'none';\n  document.getElementById('chName').textContent=ch?c.slice(1):c;\n  var q=String(a.replying_to==null?'':a.replying_to);\n  if(q){document.getElementById('quoteRow').style.display='';\n   document.getElementById('quoteText').textContent=q;}}\n if(d.type==='voiceos:init'){fit();}});\nsetTimeout(fit,0);\nArray.prototype.forEach.call(document.querySelectorAll('.bar button'),function(b){\n b.addEventListener('click',function(){var w=b.getAttribute('data-w');\n  var s=msg.selectionStart,e2=msg.selectionEnd,v=msg.value;\n  msg.value=v.slice(0,s)+w+v.slice(s,e2)+w+v.slice(e2);\n  msg.focus();msg.setSelectionRange(s+1,e2+1);push();});});\n</script></body></html>",
+              "height": 270,
+              "confirmLabel": "Reply"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "slack_set_status",
+      "title": "Set status and Do Not Disturb",
+      "description": "Set your Slack status, and snooze notifications with it when a duration was spoken. A duration with no number blocks and asks for one rather than choosing a default.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Status text, verbatim as dictated."
+          },
+          "emoji": {
+            "type": "string",
+            "description": "Status emoji as the character itself, like 🌴. Slack emoji names also work."
+          },
+          "duration_minutes": {
+            "type": "number",
+            "description": "How long the status lasts, in minutes."
+          },
+          "snooze": {
+            "type": "boolean",
+            "description": "Also snooze notifications for the same duration."
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "additionalProperties": false
+      },
+      "confirmation": {
+        "schemaVersion": 1,
+        "root": {
+          "type": "card",
+          "title": "Set your status",
+          "icon": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 122.8 122.8'><path d='M25.8 77.6c0 7.1-5.8 12.9-12.9 12.9S0 84.7 0 77.6s5.8-12.9 12.9-12.9h12.9v12.9zm6.5 0c0-7.1 5.8-12.9 12.9-12.9s12.9 5.8 12.9 12.9v32.3c0 7.1-5.8 12.9-12.9 12.9s-12.9-5.8-12.9-12.9V77.6z' fill='%23E01E5A'/><path d='M45.2 25.8c-7.1 0-12.9-5.8-12.9-12.9S38.1 0 45.2 0s12.9 5.8 12.9 12.9v12.9H45.2zm0 6.5c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9H12.9C5.8 58.1 0 52.3 0 45.2s5.8-12.9 12.9-12.9h32.3z' fill='%2336C5F0'/><path d='M97 45.2c0-7.1 5.8-12.9 12.9-12.9s12.9 5.8 12.9 12.9-5.8 12.9-12.9 12.9H97V45.2zm-6.5 0c0 7.1-5.8 12.9-12.9 12.9s-12.9-5.8-12.9-12.9V12.9C64.7 5.8 70.5 0 77.6 0s12.9 5.8 12.9 12.9v32.3z' fill='%232EB67D'/><path d='M77.6 97c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9-12.9-5.8-12.9-12.9V97h12.9zm0-6.5c-7.1 0-12.9-5.8-12.9-12.9s5.8-12.9 12.9-12.9h32.3c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9H77.6z' fill='%23ECB22E'/></svg>",
+          "children": [
+            {
+              "type": "textField",
+              "bind": "{{text}}",
+              "label": "Status",
+              "required": true
+            },
+            {
+              "type": "keyValue",
+              "visibleIf": "emoji",
+              "rows": [
+                {
+                  "label": "Emoji",
+                  "value": "{{emoji}}"
+                }
+              ]
+            },
+            {
+              "type": "keyValue",
+              "visibleIf": "duration_minutes",
+              "rows": [
+                {
+                  "label": "For",
+                  "value": "{{duration_minutes}} minutes"
+                }
+              ]
+            }
+          ],
+          "footer": [
+            {
+              "type": "actions",
+              "items": [
+                {
+                  "label": "Cancel",
+                  "role": "cancel"
+                },
+                {
+                  "label": "Set status",
+                  "role": "confirm",
+                  "color": "accent"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "slack_disconnect",
+      "title": "Disconnect Slack",
+      "description": "Disconnect Slack on this Mac: the token is deleted from the Keychain vault. Toggle-grade and ungated, like the official apps; reconnecting later is one spoken command.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "slack_health",
+      "title": "Slack health check",
+      "description": "Report whether Slack is connected on this Mac, and as whom in which workspace, by asking Slack itself rather than by trusting a stored token. Read-only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    }
+  ]
+}

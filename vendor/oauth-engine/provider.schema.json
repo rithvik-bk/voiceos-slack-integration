@@ -1,0 +1,246 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://voiceos.local/provider.schema.json",
+  "title": "ProviderProfile v1",
+  "description": "The committed, PUBLIC per-provider config (engine contract §A4 §A6 §A16). Machine-readable twin of engine/src/types.ts#ProviderProfile. Every axis on which providers differ is a FIELD here — never an `if (provider === ...)` in the engine.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "name",
+    "display_name",
+    "authorize_url",
+    "token_url",
+    "client_id",
+    "client_type",
+    "pkce",
+    "redirect_strategy",
+    "redirect_host",
+    "redirect_ports",
+    "scopes",
+    "scope_param",
+    "token_auth",
+    "refresh_auth",
+    "token_path",
+    "refresh",
+    "rotation",
+    "identity_probe"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "$comment": { "type": "string" },
+    "schema_version": { "const": 1 },
+
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+$|^__provider__$",
+      "description": "Stable key used by getToken()/disconnect() and as the vault account name. NOT `id` — engine/src/types.ts reads `name`."
+    },
+    "display_name": { "type": "string", "minLength": 1 },
+
+    "authorize_url": { "type": "string", "format": "uri", "pattern": "^https://" },
+    "token_url": { "type": "string", "format": "uri", "pattern": "^https://" },
+    "revoke_url": { "type": "string", "pattern": "^https://" },
+    "api_base": { "type": "string", "pattern": "^https://" },
+
+    "client_id": {
+      "type": "string",
+      "description": "Public client id. Blank until the integration author pastes it; declared in _placeholders while blank. Never a secret."
+    },
+    "client_secret": {
+      "not": {},
+      "description": "Reserved and forbidden. A secret must never live in a committed file."
+    },
+
+    "client_type": { "enum": ["public", "confidential"] },
+    "pkce": { "enum": ["S256", "none"] },
+
+    "client_auth": {
+      "enum": ["none", "secret_post", "secret_basic", "private_key_jwt", "mtls", "unknown"],
+      "description": "SPEC §1 — the single most consequential capability axis: how the TOKEN endpoint authenticates the client, and therefore which custody class applies. Distinct from `token_auth`, which is the WIRE encoding the exchange already uses (none/body/basic/basic_empty_password). `none`+`pkce:S256` = Class A. Anything else needs a secret and picks a B/C path. `unknown` = the probe could not classify (§2): the engine treats it as the most conservative value and never guesses."
+    },
+    "discovery": {
+      "enum": ["rfc8414", "oidc", "none", "unknown"],
+      "description": "SPEC §1 — whether endpoints can be FETCHED from `.well-known` (RFC 8414 / OIDC) instead of hand-configured. `none` = fully hand-configured (today's three). `unknown` = unprobed."
+    },
+    "dcr": {
+      "enum": ["rfc7591", "none", "unknown"],
+      "description": "SPEC §1 — RFC 7591 dynamic client registration. `rfc7591` unlocks Custody Class C (self-registering, credentials on device). `unknown` = unprobed."
+    },
+    "registration_url": {
+      "type": "string",
+      "pattern": "^https://",
+      "description": "SPEC §1, §4 (C-8) — RFC 7591 registration endpoint (the `registration_endpoint` from RFC 8414 metadata). Required when `dcr: 'rfc7591'`: the engine POSTs client metadata here and stores the returned credentials on-device (Custody Class C). Never a secret."
+    },
+    "par": {
+      "enum": ["rfc9126", "none", "unknown"],
+      "description": "SPEC §1 — RFC 9126 pushed authorization requests, increasingly required by strict providers. `unknown` = unprobed."
+    },
+    "sender_constraint": {
+      "enum": ["bearer", "dpop", "mtls", "unknown"],
+      "description": "SPEC §1 — how every subsequent API call is bound to the client. `bearer` = plain (today's three). `dpop` (RFC 9449) changes how each call is signed; `mtls` binds to a client cert. `unknown` = unprobed."
+    },
+    "device_flow": {
+      "enum": ["rfc8628", "none", "unknown"],
+      "description": "SPEC §1, §3 path 3 — RFC 8628 device authorization grant, the fallback when no browser or no loopback is available. `unknown` = unprobed."
+    },
+    "device_authorization_url": {
+      "type": "string",
+      "pattern": "^https://",
+      "description": "SPEC §3 path 3 (C-17) — RFC 8628 §3.1 device authorization endpoint. Required to select the device grant: the engine POSTs client_id + scope here and receives the user_code + verification_uri to display. Only meaningful when `device_flow: 'rfc8628'`. Never a secret."
+    },
+    "scope_grant": {
+      "enum": ["exact", "downgradeable", "incremental", "unknown"],
+      "description": "SPEC §1, §9 — whether granted scopes may differ from requested. `incremental` enables step-up; where it is NOT `incremental`, step-up must re-request the UNION of granted+new (§9). `unknown` = unprobed."
+    },
+    "revocation": {
+      "enum": ["rfc7009", "proprietary", "none", "unknown"],
+      "description": "SPEC §1, §6 — whether `disconnect()` can actually revoke upstream or only forget locally. `rfc7009` = standard revocation endpoint (see `revoke_url`); `proprietary` = a non-standard one; `none` = forget-only. `unknown` = unprobed."
+    },
+
+    "custody_class": {
+      "enum": ["A", "B1", "B2a", "B2b", "C", "unknown"],
+      "description": "SPEC §4, §5b — DERIVED, never hand-authored: the custody rung this provider lands on, computed from the measured profile (chiefly `client_auth`, `pkce`, `dcr`). A = public, nothing leaves the device. B1 = user's own secret in their keychain. B2a = relay signs a client assertion, never sees a token. B2b = relay performs the exchange once, encrypted onward. C = self-registered via DCR. `unknown` while underived. Displayed to the user at connect time."
+    },
+    "relay_mode": {
+      "enum": ["none", "assertion_signing", "exchange_forwarding", "unknown"],
+      "description": "SPEC §5b — DERIVED custody sub-mode when a relay is involved. `assertion_signing` (B2a) is preferred and selected wherever `client_auth:private_key_jwt` is available: the relay returns a signed assertion and never sees the code, verifier, or token. `exchange_forwarding` (B2b) is used only when a raw shared secret is unavoidable. `none` when no relay is used (Class A/B1/C)."
+    },
+
+    "redirect_strategy": { "enum": ["loopback", "hosts-alias", "relay", "scheme"] },
+    "redirect_host": {
+      "type": "string",
+      "description": "`localhost` for every loopback provider — sole source engine/src/config.ts (§A3, PORT-STRATEGY §3.4)."
+    },
+    "redirect_ports": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "integer", "minimum": 1024, "maximum": 49151 },
+      "description": "Ports registered with the provider, in ladder order. Reddit's has length 1 by provider fiat."
+    },
+    "relay_url": {
+      "type": "string",
+      "pattern": "^https://",
+      "description": "Required iff redirect_strategy === 'relay' (§A16)."
+    },
+
+    "scopes": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "scope_param": { "enum": ["scope", "user_scope"] },
+    "scope_delimiter": { "type": "string", "default": " " },
+
+    "token_auth": { "enum": ["none", "basic_empty_password", "basic", "secret_basic", "secret_post", "body"] },
+    "refresh_auth": {
+      "enum": ["client_id_body", "basic_empty_password", "basic", "secret_basic", "secret_post", "none", "unknown"],
+      "description": "A separate axis from token_auth on purpose (§A6/§A10): Slack's AND Zoom's public-client refresh auth are both undocumented, and collapsing the axes would hard-code the ambiguity into exchange.ts."
+    },
+
+    "extra_authorize_params": { "type": "object", "additionalProperties": { "type": "string" } },
+    "static_headers": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "Sent on EVERY request to this provider, token exchange included. Reddit's mandatory User-Agent lives here and nowhere else (§A16)."
+    },
+    "token_endpoint_extra_headers": { "type": "object", "additionalProperties": { "type": "string" } },
+
+    "token_path": { "type": "string", "minLength": 1 },
+    "refresh_token_path": { "type": "string" },
+    "expires_in_path": { "type": "string" },
+    "success_predicate": { "$ref": "#/$defs/successPredicate" },
+
+    "refresh": { "enum": ["rotation", "long_lived", "none"] },
+    "rotation": { "enum": ["forced", "optional-enabled", "optional-off", "none"] },
+    "access_token_ttl": { "type": "integer", "minimum": 1 },
+    "refresh_ttl": { "type": ["integer", "null"], "minimum": 1 },
+
+    "rate_limit": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "requests_per_minute": { "type": "integer", "minimum": 1 },
+        "per_second": { "type": "integer", "minimum": 1 },
+        "per_day": { "type": "integer", "minimum": 1 },
+        "tier": { "type": "string" },
+        "headers": { "type": "object", "additionalProperties": { "type": "string" } },
+        "note": { "type": "string" }
+      }
+    },
+
+    "identity_probe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "handle_path"],
+      "properties": {
+        "url": { "type": "string", "pattern": "^https://" },
+        "method": { "enum": ["GET", "POST"] },
+        "handle_path": { "type": "string", "minLength": 1 },
+        "handle_prefix": { "type": "string" },
+        "workspace_path": { "type": "string" },
+        "account_id_path": { "type": "string" },
+        "auth": { "enum": ["bearer", "none"] },
+        "requires_scope": { "type": "string" },
+        "success_predicate": { "$ref": "#/$defs/successPredicate" }
+      },
+      "description": "'connected' is produced by this probe, never by an HTTP 200."
+    },
+
+    "brand_icon": {
+      "type": "string",
+      "pattern": "^data:image/(png|svg\\+xml);base64,[A-Za-z0-9+/=]+$",
+      "description": "Provider's brand mark as a self-contained data URI, shown on the loopback callback pages. Cosmetic only; never fetched."
+    },
+
+    "relay_eligible": {
+      "type": "boolean",
+      "description": "Derived, never hand-written: true iff pkce !== 'none'. A code may transit the relay only if a local verifier is required to spend it."
+    },
+
+    "issuer": { "type": "string", "description": "RFC 9207 issuer identifier; callback iss must equal this (mix-up defense, C-3)." },
+    "authorization_response_iss_parameter_supported": { "type": "boolean", "description": "Provider always returns iss on the authorization response (RFC 9207, C-3)." },
+
+    "_notes": { "type": "object", "additionalProperties": { "type": "string" } },
+    "_doc": { "type": "string" },
+    "_placeholders": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Every value a human still has to fill in, e.g. `client_id`, `static_headers.User-Agent:__REDDIT_USERNAME__`. Phase 0: expected. Phase 1: hard failure (§A16, amends W3's 'client_id the ONLY blank')."
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "redirect_strategy": { "const": "relay" } }, "required": ["redirect_strategy"] },
+      "then": { "required": ["relay_url"] }
+    },
+    {
+      "if": { "properties": { "pkce": { "const": "none" } }, "required": ["pkce"] },
+      "then": { "properties": { "relay_eligible": { "const": false } } }
+    },
+    {
+      "if": { "properties": { "custody_class": { "const": "A" } }, "required": ["custody_class"] },
+      "then": { "properties": { "client_auth": { "enum": ["none"] } } }
+    },
+    {
+      "if": { "properties": { "custody_class": { "const": "B2a" } }, "required": ["custody_class"] },
+      "then": { "properties": { "relay_mode": { "const": "assertion_signing" } } }
+    },
+    {
+      "if": { "properties": { "relay_mode": { "const": "assertion_signing" } }, "required": ["relay_mode"] },
+      "then": { "properties": { "client_auth": { "const": "private_key_jwt" } } }
+    }
+  ],
+  "$defs": {
+    "successPredicate": {
+      "description": "null/absent = the HTTP status is the whole verdict. An object = the body must agree too (Slack's ok:false inside an HTTP 200). Never a JS expression string, never an enum token — the engine evaluates path/equals and never eval()s config.",
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "equals"],
+          "properties": {
+            "path": { "type": "string", "minLength": 1 },
+            "equals": { "type": ["string", "number", "boolean"] }
+          }
+        }
+      ]
+    }
+  }
+}
