@@ -1,6 +1,13 @@
 # Downloadable Slack integration for VoiceOS
 
-**Do real Slack work by voice.** Read a cross-channel catch-up digest, read any channel or DM, search, send and schedule messages, react, reply in thread, set your status and Do Not Disturb. Sixteen tools, and connecting your workspace is one tap on Slack's own approval page.
+**Do real Slack work by voice.** Sixteen tools. Connecting your workspace is one tap on Slack's own approval page.
+
+Say things like:
+
+- *"Catch me up on the last day"* and get a cross-channel digest of what you missed
+- *"Send #design a message that the mocks are ready"*
+- *"Set my status to focused for two hours"*
+- Read any channel or DM, search, schedule messages, react, reply in thread, set Do Not Disturb
 
 **No API key is ever pasted. No secret ships in this repo.** The token is stored encrypted in the macOS login Keychain, never in a file on disk.
 
