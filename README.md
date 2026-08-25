@@ -1,6 +1,6 @@
-# Downloadable Slack integration for VoiceOS
+# Slack x VoiceOS integration
 
-**Do real Slack work by voice.** Sixteen tools. Connecting your workspace is one tap on Slack's own approval page.
+**Use Slack by voice through VoiceOS.** Sixteen tools. Connecting your workspace is one tap on Slack's own approval page.
 
 Say things like:
 
